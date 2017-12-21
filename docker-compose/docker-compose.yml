@@ -1,0 +1,59 @@
+version: "2"
+
+networks:
+  backtier:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.33.0.0/16
+        
+services:
+  tomcat-volume:
+    build:
+      context: ./dockerfiles/tomcat-volume
+    container_name: tomcat-volume
+    image: tomcat-volume
+    
+  nginx-volume:
+    build:
+      context: ./dockerfiles/nginx-volume
+      dockerfile: Dockerfile
+    container_name: nginx-volume
+    image: nginx-volume
+
+  tomcat:
+    build:
+      context: ./dockerfiles/tomcat
+    container_name: tomcat
+    image: tomcat
+    volumes_from:
+      - tomcat-volume
+    networks:
+      backtier:
+        ipv4_address: 172.33.0.3
+    ulimits:
+      nproc: 65535
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "tcp://172.33.0.1:514"
+    
+  nginx:
+    build:
+      context: ./dockerfiles/nginx
+    container_name: nginx
+    image: nginx
+    ports:
+      - "80:80"
+    volumes_from:
+      - nginx-volume
+    networks:
+      backtier:
+        ipv4_address: 172.33.0.2
+    ulimits:
+      nproc: 65535
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "tcp://172.33.0.1:514"
+ 
